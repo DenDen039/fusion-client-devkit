@@ -149,7 +149,7 @@ jobs:
                 repo: context.repo.repo,
                 release_id:  ${{ env.RELEASE_ID }},
                 name: "fusion-devkit-amd64${{ env.PATCH_TAG }}.tar",
-                data: "fusion-devkit-amd64${{ env.PATCH_TAG }}.tar",
+                data: "@fusion-devkit-amd64${{ env.PATCH_TAG }}.tar",
               });
             } catch (error) {
               core.setFailed(error.message);
