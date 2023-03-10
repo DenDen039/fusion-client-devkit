@@ -120,24 +120,22 @@ jobs:
 
       - name: Create image amd64 artifact
         run: |
-          docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.CURRENT_VERSION }} --platform amd64 \
-          && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.CURRENT_VERSION }} >> fusion-devkit-amd64${{ env.CURRENT_VERSION }}.tar
+          docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.CURRENT_VERSION }} --platform amd64 && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.CURRENT_VERSION }} > fusion-devkit-amd64${{ env.CURRENT_VERSION }}.tar
       - name: Create image arm64 artifact
         run: |
-          docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.CURRENT_VERSION }} --platform arm64 \
-          && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.CURRENT_VERSION }} >> fusion-devkit-arm64${{ env.CURRENT_VERSION }}.tar
+          docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.CURRENT_VERSION }} --platform arm64 && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.CURRENT_VERSION }} > fusion-devkit-arm64${{ env.CURRENT_VERSION }}.tar
 
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: fusion-devkit-arm64${{ env.CURRENT_VERSION }}.tar
-      #     path: fusion-devkit-arm64.tar
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: fusion-devkit-arm64${{ env.CURRENT_VERSION }}.tar
+          path: fusion-devkit-arm64${{ env.CURRENT_VERSION }}.tar
 
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: fusion-devkit-amd64${{ env.CURRENT_VERSION }}.tar
-      #     path: fusion-devkit-amd64.tar
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: fusion-devkit-amd64${{ env.CURRENT_VERSION }}.tar
+          path: fusion-devkit-arm64${{ env.CURRENT_VERSION }}.tar
 
       - name: Upload release asset
         uses: actions/github-script@v6
