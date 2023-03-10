@@ -124,7 +124,7 @@ jobs:
         run: docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} > fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
 
       - run: |
-          gh release create fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
+          gh release create ${{ env.PATCH_TAG }} *.tar
         env:
           GITHUB_TOKEN: ${{ github.TOKEN }}
         shell: bash
