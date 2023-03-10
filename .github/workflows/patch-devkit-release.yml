@@ -77,7 +77,7 @@ jobs:
             SWAGGER_UI_IMAGE=swagger-ui:${{ vars.SWAGGER_UI_VERSION }}
             LOCAL_REGISTRY=localhost:5000/
           tags: |
-            ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }}
+            ${{ vars.IMAGE_REGISTRY }}/${{ env.CURRENT_VERSION }}
 
       - name: Build and push latest image to public registry
         if: ${{ github.event.inputs.updateLatest }}
@@ -91,20 +91,6 @@ jobs:
             LOCAL_REGISTRY=localhost:5000/
           tags: |
             ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:latest
-
-  create-patch-release:
-    name: Release
-    runs-on: ubuntu-latest
-    environment: fusion-devkit-env
-    if: startsWith(github.ref, 'refs/heads/release')
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Get version
-        run: echo CURRENT_VERSION="$(echo ${{ github.ref_name }} | sed -e "s/^release\///")" >> $GITHUB_ENV
-
-      - name: Get tag
-        run: echo PATCH_TAG=${{ env.CURRENT_VERSION }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
 
       - name: Create release
         uses: "actions/github-script@v6"

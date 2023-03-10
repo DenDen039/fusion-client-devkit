@@ -80,15 +80,6 @@ jobs:
           tags: |
             ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.RELEASE_TAG }} 
             ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:latest
-  create-release:
-    name: Release
-    runs-on: ubuntu-latest
-    environment: fusion-devkit-env
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Get tag
-        run: echo RELEASE_TAG=v${{ github.event.inputs.versionName }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
 
       - name: Create release
         uses: "actions/github-script@v6"
