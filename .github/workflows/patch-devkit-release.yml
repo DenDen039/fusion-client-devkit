@@ -27,12 +27,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/${{ env.PATCH_TAG }}',
-              sha: context.sha
-            })
+            try{
+              github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/tags/${{ env.PATCH_TAG }}',
+                sha: context.sha
+              })
+            } catch (error) {
+              core.setFailed(error.message);
+            }
 
       - name: Get swagger-ui repo
         uses: actions/checkout@v3

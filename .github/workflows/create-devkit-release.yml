@@ -13,27 +13,42 @@ jobs:
     runs-on: ubuntu-latest
     name: Create and publish multi-arch Devkit image
     environment: docker_login
+    # if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v3
-
-      - name: Create release branch
-        run: git checkout -b release/v${{ github.event.inputs.versionName }}
-
-      - name: Initialize git config
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email noreply@github.com
 
       - name: Get tag
         run: echo RELEASE_TAG=v${{ github.event.inputs.versionName }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
 
+      - name: Create release branch
+        uses: actions/github-script@v6
+        with:
+          script: |
+            try{
+              octokit.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/heads/release/v${{ github.event.inputs.versionName }}',
+                sha: context.sha
+              });
+            } catch (error) {
+              core.setFailed(error.message);
+            }
+
       - name: Create tag
-        run: git tag ${{ env.RELEASE_TAG }}
-
-      - name: Push new branch
-        run: git push origin release/v${{ github.event.inputs.versionName }} --tags
-
-      - uses: actions/checkout@v3
+        uses: actions/github-script@v6
+        with:
+          script: |
+            try{
+              github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/tags/${{ env.RELEASE_TAG }}',
+                sha: context.sha
+              })
+            } catch (error) {
+              core.setFailed(error.message);
+            }
 
       - name: Get swagger-ui repo
         uses: actions/checkout@v3
@@ -96,7 +111,6 @@ jobs:
                 repo: context.repo.repo,
                 tag_name: process.env.RELEASE_TAG,
               });
-
               core.exportVariable('RELEASE_ID', response.data.id);
               core.exportVariable('RELEASE_UPLOAD_URL', response.data.upload_url);
             } catch (error) {
