@@ -145,13 +145,14 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const fs = require('fs')
             try {
               const response = await github.rest.repos.uploadReleaseAsset({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 release_id:  ${{ env.RELEASE_ID }},
                 name: "fusion-devkit-amd64${{ env.PATCH_TAG }}.tar",
-                data: @~/fusion-devkit-amd64${{ env.PATCH_TAG }}.tar,
+                data: fs.createReadStream('~/fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar'),
               });
             } catch (error) {
               core.setFailed(error.message);
