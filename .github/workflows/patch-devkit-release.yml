@@ -1,7 +1,4 @@
 on:
-  push:
-    branches:
-      - release-workflow
   workflow_dispatch:
     inputs:
       patchName:
@@ -112,7 +109,7 @@ jobs:
       - name: Create release
         uses: "actions/github-script@v6"
         with:
-          github-token: "${{ inputs.github-token }}"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             try {
               const response = await github.rest.repos.createRelease({
