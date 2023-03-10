@@ -13,22 +13,24 @@ jobs:
   create-patch-image:
     runs-on: ubuntu-latest
     name: Create and publish multi-arch Devkit patch image
-    environment: fusion-devkit-env
+    environment: docker_login
     if: startsWith(github.ref, 'refs/heads/release')
     steps:
       - uses: actions/checkout@v3
 
       - name: Get version
         run: echo CURRENT_VERSION="$(echo ${{ github.ref_name }} | sed -e "s/^release\///")" >> $GITHUB_ENV
+      - name: Get tag
+        run: echo PATCH_TAG=${{ env.CURRENT_VERSION }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
 
       - name: Create tag
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           script: |
             github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: 'refs/tags/${{ env.CURRENT_VERSION }}.${{ github.event.inputs.patchName }}',
+              ref: 'refs/tags/${{ env.PATCH_TAG }}',
               sha: context.sha
             })
 
@@ -75,7 +77,7 @@ jobs:
             SWAGGER_UI_IMAGE=swagger-ui:${{ vars.SWAGGER_UI_VERSION }}
             LOCAL_REGISTRY=localhost:5000/
           tags: |
-            ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.CURRENT_VERSION }}.${{ github.event.inputs.patchName }}
+            ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }}
 
       - name: Build and push latest image to public registry
         if: ${{ github.event.inputs.updateLatest }}
@@ -89,3 +91,39 @@ jobs:
             LOCAL_REGISTRY=localhost:5000/
           tags: |
             ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:latest
+
+  create-patch-release:
+    name: Release
+    runs-on: ubuntu-latest
+    environment: fusion-devkit-env
+    if: startsWith(github.ref, 'refs/heads/release')
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get version
+        run: echo CURRENT_VERSION="$(echo ${{ github.ref_name }} | sed -e "s/^release\///")" >> $GITHUB_ENV
+
+      - name: Get tag
+        run: echo PATCH_TAG=${{ env.CURRENT_VERSION }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
+
+      - name: Create release
+        uses: "actions/github-script@v6"
+        with:
+          github-token: "${{ inputs.github-token }}"
+          script: |
+            try {
+              const response = await github.rest.repos.createRelease({
+                draft: false,
+                generate_release_notes: true,
+                name: process.env.PATCH_TAG,
+                owner: context.repo.owner,
+                prerelease: false,
+                repo: context.repo.repo,
+                tag_name: process.env.PATCH_TAG,
+              });
+
+              core.exportVariable('RELEASE_ID', response.data.id);
+              core.exportVariable('RELEASE_UPLOAD_URL', response.data.upload_url);
+            } catch (error) {
+              core.setFailed(error.message);
+            }
