@@ -121,9 +121,9 @@ jobs:
       - name: Pull image amd64
         run: docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform amd64
       - name: Create artifact
-        run: docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} > /fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
+        run: docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} > ~/fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
       - name: Check artifact
-        run: ls -la / | grep .tar
+        run: ls -la ~ | grep .tar
       # - name: Create image arm64 artifact
       #   run: |
       #     docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform arm64 && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }} > fusion-devkit-arm64${{ env.PATCH_TAG }}.tar
@@ -151,7 +151,7 @@ jobs:
                 repo: context.repo.repo,
                 release_id:  ${{ env.RELEASE_ID }},
                 name: "fusion-devkit-amd64${{ env.PATCH_TAG }}.tar",
-                data: "@/fusion-devkit-amd64${{ env.PATCH_TAG }}.tar",
+                data: "@~/fusion-devkit-amd64${{ env.PATCH_TAG }}.tar",
               });
             } catch (error) {
               core.setFailed(error.message);
