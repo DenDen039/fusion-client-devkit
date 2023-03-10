@@ -118,9 +118,10 @@ jobs:
               core.setFailed(error.message);
             }
 
-      - name: Create image amd64 artifact
-        run: |
-          docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform amd64 && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }} > fusion-devkit-amd64${{ env.PATCH_TAG }}.tar
+      - name: Pull image amd64
+        run: docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform amd64
+      - name: Create artifact
+        run: docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} > fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
       # - name: Create image arm64 artifact
       #   run: |
       #     docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform arm64 && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }} > fusion-devkit-arm64${{ env.PATCH_TAG }}.tar
