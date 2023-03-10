@@ -147,7 +147,7 @@ jobs:
             var reader = new FileReader();
 
             try {
-              reader.onload = function(e) {
+              reader.onload = async function(e) {
                 const response = await github.rest.repos.uploadReleaseAsset({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
