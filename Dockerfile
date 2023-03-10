@@ -22,8 +22,8 @@ ARG LOCAL_REGISTRY=localhost:5000/ SWAGGER_UI_IMAGE=swagger-ui:v4.15.5
 FROM ${LOCAL_REGISTRY}${SWAGGER_UI_IMAGE}
 
 # Install required tools
-RUN apk update && apk add --no-cache wget git\
-    py3-pip bash bash-completion openssh terraform
+# RUN apk update && apk add --no-cache wget git\
+#     py3-pip bash bash-completion openssh terraform
 
 # # Install tools for arm64
 # ARG TARGETPLATFORM
@@ -68,4 +68,4 @@ RUN apk update && apk add --no-cache wget git\
 # RUN chmod +x /docker-entrypoint.sh
 
 # Add bash entrypoint
-CMD ["bash"]
+CMD ["sh"]
