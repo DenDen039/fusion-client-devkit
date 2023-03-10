@@ -122,6 +122,7 @@ jobs:
         run: docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform amd64
       - name: Create artifact
         run: docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} > fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
+
       # - name: Create image arm64 artifact
       #   run: |
       #     docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform arm64 && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }} > fusion-devkit-arm64${{ env.PATCH_TAG }}.tar
@@ -137,30 +138,25 @@ jobs:
       #   with:
       #     name: fusion-devkit-amd64${{ env.CURRENT_VERSION }}.tar
       #     path: fusion-devkit-arm64${{ env.CURRENT_VERSION }}.tar
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release asset
+        uses: actions/github-script@v6
         with:
-          upload_url: ${{ env.RELEASE_UPLOAD_URL }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
-          asset_name: fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
-          asset_content_type: application/x-tar
-      # - name: Upload release asset
-      #   uses: actions/github-script@v6
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     script: |
-      #       const fs = require('fs')
-      #       try {
-      #         const response = await github.rest.repos.uploadReleaseAsset({
-      #           owner: context.repo.owner,
-      #           repo: context.repo.repo,
-      #           release_id:  ${{ env.RELEASE_ID }},
-      #           name: "fusion-devkit-amd64${{ env.PATCH_TAG }}.tar",
-      #           data: fs.createReadStream('~/fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar'),
-      #         });
-      #       } catch (error) {
-      #         core.setFailed(error.message);
-      #       }
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            var reader = new FileReader();
+
+            try {
+              reader.onload = function(e) {
+                const response = await github.rest.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id:  ${{ env.RELEASE_ID }},
+                  name: "fusion-devkit-amd64${{ env.PATCH_TAG }}.tar",
+                  data: reader.result,
+                });
+              }
+              reader.readAsArrayBuffer(file);
+            } catch (error) {
+              core.setFailed(error.message);
+            }
