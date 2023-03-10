@@ -1,38 +1,43 @@
 on:
+  push:
+    branches:
+      - release-workflow
   workflow_dispatch:
     inputs:
+      versionName:
+        description: "Name of version (x.x)"
+        required: true
       patchName:
         description: "Name of version patch"
-        required: true
-      updateLatest:
-        type: boolean
-        description: "Push image to latest tag"
-        default: false
+        default: "0"
 
 jobs:
-  create-patch-image:
+  publish-release-image:
     runs-on: ubuntu-latest
-    name: Create and publish multi-arch Devkit patch image
+    name: Create and publish multi-arch Devkit image
     environment: docker_login
-    if: startsWith(github.ref, 'refs/heads/release')
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get version
-        run: echo CURRENT_VERSION="$(echo ${{ github.ref_name }} | sed -e "s/^release\///")" >> $GITHUB_ENV
+      - name: Create release branch
+        run: git checkout -b release/v${{ github.event.inputs.versionName }}
+
+      - name: Initialize git config
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email noreply@github.com
+
       - name: Get tag
-        run: echo PATCH_TAG=${{ env.CURRENT_VERSION }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
+        run: echo RELEASE_TAG=v${{ github.event.inputs.versionName }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
 
       - name: Create tag
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/${{ env.PATCH_TAG }}',
-              sha: context.sha
-            })
+        run: git tag ${{ env.RELEASE_TAG }}
+
+      - name: Push new branch
+        run: git push origin release/v${{ github.event.inputs.versionName }} --tags
+
+      - uses: actions/checkout@v3
 
       - name: Get swagger-ui repo
         uses: actions/checkout@v3
@@ -77,34 +82,17 @@ jobs:
             SWAGGER_UI_IMAGE=swagger-ui:${{ vars.SWAGGER_UI_VERSION }}
             LOCAL_REGISTRY=localhost:5000/
           tags: |
-            ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }}
-
-      - name: Build and push latest image to public registry
-        if: ${{ github.event.inputs.updateLatest }}
-        uses: docker/build-push-action@v4
-        with:
-          push: true
-          provenance: false
-          platforms: linux/amd64,linux/arm64
-          build-args: |
-            SWAGGER_UI_IMAGE=swagger-ui:${{ vars.SWAGGER_UI_VERSION }}
-            LOCAL_REGISTRY=localhost:5000/
-          tags: |
+            ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.RELEASE_TAG }} 
             ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:latest
-
-  create-patch-release:
+  create-release:
     name: Release
     runs-on: ubuntu-latest
     environment: fusion-devkit-env
-    if: startsWith(github.ref, 'refs/heads/release')
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get version
-        run: echo CURRENT_VERSION="$(echo ${{ github.ref_name }} | sed -e "s/^release\///")" >> $GITHUB_ENV
-
       - name: Get tag
-        run: echo PATCH_TAG=${{ env.CURRENT_VERSION }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
+        run: echo RELEASE_TAG=v${{ github.event.inputs.versionName }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
 
       - name: Create release
         uses: "actions/github-script@v6"
@@ -115,11 +103,11 @@ jobs:
               const response = await github.rest.repos.createRelease({
                 draft: false,
                 generate_release_notes: true,
-                name: process.env.PATCH_TAG,
+                name: process.env.RELEASE_TAG,
                 owner: context.repo.owner,
                 prerelease: false,
                 repo: context.repo.repo,
-                tag_name: process.env.PATCH_TAG,
+                tag_name: process.env.RELEASE_TAG,
               });
 
               core.exportVariable('RELEASE_ID', response.data.id);
