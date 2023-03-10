@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Create and publish multi-arch Devkit image
     environment: docker_login
-    # if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v3
 
