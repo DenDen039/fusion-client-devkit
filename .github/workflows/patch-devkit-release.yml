@@ -81,7 +81,7 @@ jobs:
             SWAGGER_UI_IMAGE=swagger-ui:${{ vars.SWAGGER_UI_VERSION }}
             LOCAL_REGISTRY=localhost:5000/
           tags: |
-            ${{ vars.IMAGE_REGISTRY }}/${{ env.CURRENT_VERSION }}
+            ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.CURRENT_VERSION }}
 
       - name: Build and push latest image to public registry
         if: ${{ github.event.inputs.updateLatest }}
