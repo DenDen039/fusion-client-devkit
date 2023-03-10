@@ -20,36 +20,6 @@ jobs:
       - name: Get tag
         run: echo RELEASE_TAG=v${{ github.event.inputs.versionName }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
 
-      - name: Create release branch
-        uses: actions/github-script@v6
-        with:
-          script: |
-            try{
-              github.rest.git.createRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: 'refs/heads/release/v${{ github.event.inputs.versionName }}',
-                sha: context.sha
-              });
-            } catch (error) {
-              core.setFailed(error.message);
-            }
-
-      - name: Create tag
-        uses: actions/github-script@v6
-        with:
-          script: |
-            try{
-              github.rest.git.createRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: 'refs/tags/${{ env.RELEASE_TAG }}',
-                sha: context.sha
-              })
-            } catch (error) {
-              core.setFailed(error.message);
-            }
-
       - name: Get swagger-ui repo
         uses: actions/checkout@v3
         with:
@@ -96,23 +66,47 @@ jobs:
             ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.RELEASE_TAG }} 
             ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:latest
 
-      - name: Create release
-        uses: "actions/github-script@v6"
+      - name: Create artifact image amd64
+        run: |
+          docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.RELEASE_TAG }} --platform amd64 \
+          && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.RELEASE_TAG }} > fusion-devkit-amd64-${{ env.RELEASE_TAG }}.tar
+      - name: Create artifact image arm64
+        run: |
+          docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.RELEASE_TAG }} --platform arm64 \
+          && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.RELEASE_TAG }} > fusion-devkit-arm64-${{ env.RELEASE_TAG }}.tar
+
+      - name: Create tag
+        uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            try {
-              const response = await github.rest.repos.createRelease({
-                draft: false,
-                generate_release_notes: true,
-                name: process.env.RELEASE_TAG,
+            try{
+              github.rest.git.createRef({
                 owner: context.repo.owner,
-                prerelease: false,
                 repo: context.repo.repo,
-                tag_name: process.env.RELEASE_TAG,
-              });
-              core.exportVariable('RELEASE_ID', response.data.id);
-              core.exportVariable('RELEASE_UPLOAD_URL', response.data.upload_url);
+                ref: 'refs/tags/${{ env.RELEASE_TAG }}',
+                sha: context.sha
+              })
             } catch (error) {
               core.setFailed(error.message);
             }
+
+      - name: Create release branch
+        uses: actions/github-script@v6
+        with:
+          script: |
+            try{
+              github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/heads/release/v${{ github.event.inputs.versionName }}',
+                sha: context.sha
+              });
+            } catch (error) {
+              core.setFailed(error.message);
+            }
+
+      - name: Create a release in GitHub and upload assets
+        env:
+          GITHUB_TOKEN: ${{ github.TOKEN }}
+        run: gh release create ${{ env.RELEASE_TAG }}  *.tar
+        shell: bash

@@ -23,21 +23,6 @@ jobs:
       - name: Get tag
         run: echo PATCH_TAG=${{ env.CURRENT_VERSION }}.${{ github.event.inputs.patchName }} >> $GITHUB_ENV
 
-      - name: Create tag
-        uses: actions/github-script@v6
-        with:
-          script: |
-            try{
-              github.rest.git.createRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: 'refs/tags/${{ env.PATCH_TAG }}',
-                sha: context.sha
-              })
-            } catch (error) {
-              core.setFailed(error.message);
-            }
-
       - name: Get swagger-ui repo
         uses: actions/checkout@v3
         with:
@@ -61,7 +46,7 @@ jobs:
         shell: bash
 
       - name: Build and push swagger-ui to local registry
-        run: docker buildx build --push --provenance=false --network=host --platform linux/amd64 -t localhost:5000/swagger-ui:${{ vars.SWAGGER_UI_VERSION }} ./swagger-ui/.
+        run: docker buildx build --push --provenance=false --network=host --platform linux/amd64,linux/arm64 -t localhost:5000/swagger-ui:${{ vars.SWAGGER_UI_VERSION }} ./swagger-ui/.
         shell: bash
 
       - name: Login to image public registry
@@ -76,90 +61,39 @@ jobs:
         with:
           push: true
           provenance: false
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           build-args: |
             SWAGGER_UI_IMAGE=swagger-ui:${{ vars.SWAGGER_UI_VERSION }}
             LOCAL_REGISTRY=localhost:5000/
           tags: |
             ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }}
 
-      # - name: Build and push latest image to public registry
-      #   if: ${{ github.event.inputs.updateLatest }}
-      #   uses: docker/build-push-action@v4
-      #   with:
-      #     push: true
-      #     provenance: false
-      #     platforms: linux/amd64,linux/arm64
-      #     build-args: |
-      #       SWAGGER_UI_IMAGE=swagger-ui:${{ vars.SWAGGER_UI_VERSION }}
-      #       LOCAL_REGISTRY=localhost:5000/
-      #     tags: |
-      #       ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:latest
+      - name: Create artifact image amd64
+        run: |
+          docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform amd64 \
+          && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} > fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
+      - name: Create artifact image arm64
+        run: |
+          docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform arm64 \
+          && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} > fusion-devkit-arm64-${{ env.PATCH_TAG }}.tar
 
-      # - name: Create release
-      #   uses: actions/github-script@v6
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     script: |
-      #       try {
-      #         const response = await github.rest.repos.createRelease({
-      #           draft: false,
-      #           generate_release_notes: true,
-      #           name: process.env.PATCH_TAG,
-      #           owner: context.repo.owner,
-      #           prerelease: false,
-      #           repo: context.repo.repo,
-      #           tag_name: process.env.PATCH_TAG,
-      #         });
+      - name: Create tag
+        uses: actions/github-script@v6
+        with:
+          script: |
+            try{
+              github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/tags/${{ env.PATCH_TAG }}',
+                sha: context.sha
+              })
+            } catch (error) {
+              core.setFailed(error.message);
+            }
 
-      #         core.exportVariable('RELEASE_ID', response.data.id);
-      #         core.exportVariable('RELEASE_UPLOAD_URL', response.data.upload_url);
-      #       } catch (error) {
-      #         core.setFailed(error.message);
-      #       }
-
-      - name: Pull image amd64
-        run: docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform amd64
-      - name: Create artifact
-        run: docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} > fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
-
-      - run: |
-          gh release create ${{ env.PATCH_TAG }} *.tar
+      - name: Create a release in GitHub and upload assets
         env:
           GITHUB_TOKEN: ${{ github.TOKEN }}
+        run: gh release create ${{ env.PATCH_TAG }} *.tar
         shell: bash
-        name: Creates a release in GitHub and uploads attachments
-      # - name: Create image arm64 artifact
-      #   run: |
-      #     docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform arm64 && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }} > fusion-devkit-arm64${{ env.PATCH_TAG }}.tar
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: fusion-devkit-arm64${{ env.CURRENT_VERSION }}.tar
-      #     path: fusion-devkit-arm64${{ env.CURRENT_VERSION }}.tar
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: fusion-devkit-amd64${{ env.CURRENT_VERSION }}.tar
-      #     path: fusion-devkit-arm64${{ env.CURRENT_VERSION }}.tar
-      # - name: Upload release asset
-      # uses: actions/github-script@v6
-      # with:
-      #   github-token: ${{ secrets.GITHUB_TOKEN }}
-      #   script: |
-      #     var reader = new FileReader();
-
-      #     try {
-      #       reader.onload = async function(e) {
-      #         const response = await github.rest.repos.uploadReleaseAsset({
-      #           owner: context.repo.owner,
-      #           repo: context.repo.repo,
-      #           release_id:  ${{ env.RELEASE_ID }},
-      #           name: "fusion-devkit-amd64${{ env.PATCH_TAG }}.tar",
-      #           data: reader.result,
-      #         });
-      #       }
-      #       reader.readAsArrayBuffer(file);
-      #     } catch (error) {
-      #       core.setFailed(error.message);
-      #     }
