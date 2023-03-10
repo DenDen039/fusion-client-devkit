@@ -121,9 +121,7 @@ jobs:
       - name: Pull image amd64
         run: docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform amd64
       - name: Create artifact
-        run: docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} > ~/fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
-      - name: Check artifact
-        run: ls -la ~ | grep .tar
+        run: docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} > fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
       # - name: Create image arm64 artifact
       #   run: |
       #     docker pull ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.PATCH_TAG }} --platform arm64 && docker save ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAME }} > fusion-devkit-arm64${{ env.PATCH_TAG }}.tar
@@ -146,7 +144,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ env.RELEASE_UPLOAD_URL }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ~/fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
+          asset_path: ./fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
           asset_name: fusion-devkit-amd64-${{ env.PATCH_TAG }}.tar
           asset_content_type: application/x-tar
       # - name: Upload release asset
